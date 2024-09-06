@@ -8,6 +8,9 @@ import cv2
 from PIL import Image, ImageTk
 import gc
 import tkinter as tk
+import pyttsx3
+engine = pyttsx3.init()
+
 
 LARGEFONT = ("Verdana", 35)
 
@@ -166,6 +169,7 @@ class Page5(ctk.CTkFrame):
 
 			results = self.hands.process(img_rgb)
 			counter = 0
+			
 
 			if results.multi_hand_landmarks and (self.disable_tracking_time is None or time.time() - self.disable_tracking_time > 5):
 				motions = []
@@ -188,21 +192,33 @@ class Page5(ctk.CTkFrame):
 			
 			if counter == 4:
 				print("Taking picture in 3 seconds")
+				engine.say("Taking picture in 3 seconds")
+				engine.runAndWait()
 				time.sleep(3)
 				pyautogui.click()
-				time.sleep(3)
+				time.sleep(1)
+				engine.say("Photo Done")
+				engine.runAndWait()
 				print("Photo Done")
-			elif counter == 5:
+			elif counter == 3:
 				print("Taking picture in 5 seconds")
+				engine.say("Taking picture in 5 seconds")
+				engine.runAndWait()
 				time.sleep(5)
 				pyautogui.click()
-				time.sleep(3)
+				time.sleep(1)
+				engine.say("Photo Done")
+				engine.runAndWait()
 				print("Photo Done")
 			elif counter == 2:
 				print("Taking picture in 10 seconds")
+				engine.say("Taking picture in 10 seconds")
+				engine.runAndWait()
 				time.sleep(10)
+				engine.say("Photo Done")
+				time.sleep(1)
+				engine.runAndWait()
 				pyautogui.click()
-				time.sleep(3)
 				print("Photo Done")
 			
 
@@ -210,7 +226,7 @@ class Page5(ctk.CTkFrame):
 		gc.collect()
 
 		# Schedule the next frame update
-		self.camera_label.after(10, self.update_frame)
+		self.camera_label.after(150, self.update_frame)
 
 
 			
