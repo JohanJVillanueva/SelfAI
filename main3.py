@@ -9,6 +9,11 @@ from PIL import Image, ImageTk
 import gc
 import tkinter as tk
 import pyttsx3
+import threading
+import speech_recognition as sr
+
+
+
 engine = pyttsx3.init()
 
 
@@ -125,108 +130,79 @@ class Page4(ctk.CTkFrame):
 		button3.place(x=190, y=300)
 		
 class Page5(ctk.CTkFrame):
-	def __init__(self, parent, controller):
-		super().__init__(parent)
-		image6 = PhotoImage(file="6.png")
-		img_label = ctk.CTkLabel(self, text="", image=image6)
-		img_label.pack()
-		img_label.image = image6
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        image6 = PhotoImage(file="6.png")
+        img_label = ctk.CTkLabel(self, text="", image=image6)
+        img_label.pack()
+        img_label.image = image6
 
-		
-		# Create a frame for the OpenCV camera feed
-		self.camera_frame = ctk.CTkFrame(self, width=10, height=10)
-		self.camera_frame.place(x=40, y=120)  # Adjust the position as needed
-		
-		# Label to display the camera feed
-		self.camera_label = ctk.CTkLabel(self.camera_frame, text="")
-		self.camera_label.pack()
-		
-		# Initialize the video capture
-		self.cap = cv2.VideoCapture(0)
-		self.disable_tracking_time = None
-		self.hands = mp.solutions.hands.Hands()
-		self.mpDraw = mp.solutions.drawing_utils
-		self.calculated_distances = [(4, 3), (8, 6), (12, 10), (16, 14), (20, 18)]
+        # Create a frame for the OpenCV camera feed
+        self.camera_frame = ctk.CTkFrame(self, width=10, height=10)
+        self.camera_frame.place(x=40, y=120)  # Adjust the position as needed
 
-	
+        # Label to display the camera feed
+        self.camera_label = ctk.CTkLabel(self.camera_frame, text="")
+        self.camera_label.pack()
 
-		# Start updating the frame
-		self.update_frame()
+       
 
-	def update_frame(self):
-		success, img = self.cap.read()
-		if success:
-			width = 300
-			height = 200
-			dim = (width, height)
-			img = cv2.flip(img, 1)
-			img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
-			img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-			img_pil = Image.fromarray(img_rgb)
-			imgtk = ImageTk.PhotoImage(image=img_pil)
-			self.camera_label.imgtk = imgtk
-			self.camera_label.configure(image=imgtk)
+        # Initialize recognizer class (for recognizing the speech)
+        self.r = sr.Recognizer()
 
-			results = self.hands.process(img_rgb)
-			counter = 0
-			
+        # Start the voice command listening thread
+        threading.Thread(target=self.listen_for_commands).start()
 
-			if results.multi_hand_landmarks and (self.disable_tracking_time is None or time.time() - self.disable_tracking_time > 5):
-				motions = []
-				for handLms in results.multi_hand_landmarks:
-					self.mpDraw.draw_landmarks(img, handLms, mp.solutions.hands.HAND_CONNECTIONS)
-					for id, lm in enumerate(handLms.landmark):
-						h, w, c = img.shape
-						cx, cy = int(lm.x * w), int(lm.y * h)
-						if id == 4:
-							cy = ((cy + motions[3][2]) / 2) + self.cap.get(4) / 30
-						motions.append([id, cx, cy])
+    def update_frame(self):
+        success, img = self.cap.read()
+        if success:
+            width = 300
+            height = 200
+            dim = (width, height)
+            img = cv2.flip(img, 1)
+            img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_pil = Image.fromarray(img_rgb)
+            imgtk = ImageTk.PhotoImage(image=img_pil)
+            self.camera_label.imgtk = imgtk
+            self.camera_label.configure(image=imgtk)
+        self.camera_label.after(150, self.update_frame)
 
-				for item in self.calculated_distances:
-					downFingerPosY = motions[item[0]][2]
-					upperFingerPosY = motions[item[1]][2]
-					isFingerOpen = downFingerPosY > upperFingerPosY
-					counter += 1 if isFingerOpen else 0
+    def take_photo(self, delay):
+        print(f"Taking picture in {delay} seconds") 
+        engine.say(f"Taking picture in {delay} seconds")
+        engine.runAndWait()
+        time.sleep(delay)
+        pyautogui.click()
+        time.sleep(1)
+        print("Photo Done")
+        time.sleep(1)
+        engine.say("Photo Done")
+        engine.runAndWait()
+        print("Photo Done")
 
-			print(counter)
-			
-			if counter == 4:
-				print("Taking picture in 3 seconds")
-				engine.say("Taking picture in 3 seconds")
-				engine.runAndWait()
-				time.sleep(3)
-				pyautogui.click()
-				time.sleep(1)
-				engine.say("Photo Done")
-				engine.runAndWait()
-				print("Photo Done")
-			elif counter == 2:
-				print("Taking picture in 5 seconds")
-				engine.say("Taking picture in 5 seconds")
-				engine.runAndWait()
-				time.sleep(5)
-				pyautogui.click()
-				time.sleep(1)
-				engine.say("Photo Done")
-				engine.runAndWait()
-				print("Photo Done")
-			elif counter == 1:
-				print("Taking picture in 10 seconds")
-				engine.say("Taking picture in 10 seconds")
-				engine.runAndWait()
-				time.sleep(10)
-				engine.say("Photo Done")
-				time.sleep(1)
-				engine.runAndWait()
-				pyautogui.click()
-				print("Photo Done")
-			
+    def listen_for_commands(self):
+        with sr.Microphone(device_index=2) as source:
+            self.r.adjust_for_ambient_noise(source)  # Adjust for ambient noise once at the beginning
+            while True:
+                print("Listening for commands...")
+                audio_text = self.r.listen(source, 3)  # Set timeout and phrase_time_limit to shorten listening time
+                try:
+                    command = self.r.recognize_google(audio_text)
+                    print(command)
+                    if command == '3 second photo':
+                        self.take_photo(3)
+						
+                    elif command == '5 second photo':
+                        self.take_photo(5)
+                    elif command == '10 second photo':
+                        self.take_photo(10)
+                except sr.UnknownValueError:
+                    print("Sorry, I did not get that")  # Handle unrecognized speech
+ 
 
-		# Explicitly call garbage collector
-		gc.collect()
-
-		# Schedule the next frame update
-		self.camera_label.after(150, self.update_frame)
+# Explicitly call garbage collector
+gc.collect()
 
 
 			

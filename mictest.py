@@ -1,6 +1,7 @@
 #import library
 
 import speech_recognition as sr
+import pyautogui
 
 # Initialize recognizer class (for recognizing the speech)
 
@@ -9,9 +10,10 @@ r = sr.Recognizer()
 # Reading Microphone as source
 # listening the speech and store in audio_text variable
 
-with sr.Microphone(device_index=1) as source:
+with sr.Microphone(device_index=2) as source:
     print("Talk")
     audio_text = r.listen(source)
+    pyautogui.click()
     print("Time over, thanks")
 # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
     
